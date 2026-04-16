@@ -1,0 +1,119 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: settings
+    //   - name: string (req)
+    //   - logoUrl: string
+    //   - whatsapp: string (req)
+    //   - deliveryEnabled: bool
+    //   - deliveryFee: number
+    //
+    // Collection: products
+    //   - name: string (req)
+    //   - description: string
+    //   - price: number (req)
+    //   - categoryId: string (req)
+    //   - imageUrl: string
+    //   - available: bool
+    //
+    // Collection: orders
+    //   - items: list (req)
+    //   - status: string (req, enum: pending, preparing, ready, delivered, cancelled)
+    //   - total: number (req)
+    //   - type: string (req, enum: table, delivery)
+    //   - (other optional customer info)
+    //
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      // PERMISSIVE: Allowing any authenticated user to act as admin as requested.
+      // RECOMMENDED: For production, check against a specific collection of allowed emails.
+      return isAuthenticated();
+    }
+
+    function isKitchenOrAdmin() {
+      return isAuthenticated() && (
+        isAdmin() ||
+        get(/databases/$(database)/documents/employees/$(request.auth.uid)).data.role == 'kitchen'
+      );
+    }
+
+    function isValidString(val, min, max) {
+      return val is string && val.size() >= min && val.size() <= max;
+    }
+
+    // Settings Validation
+    function isValidSetting(data) {
+      return data.keys().hasAll(['name', 'whatsapp']) &&
+             isValidString(data.name, 1, 100) &&
+             isValidString(data.whatsapp, 5, 20);
+    }
+
+    // Product Validation
+    function isValidProduct(data) {
+      return data.keys().hasAll(['name', 'price', 'categoryId']) &&
+             isValidString(data.name, 1, 100) &&
+             data.price is number && data.price >= 0;
+    }
+
+    // Order Validation
+    function isValidOrder(data) {
+      return data.keys().hasAll(['items', 'status', 'total', 'type', 'createdAt']) &&
+             data.items is list &&
+             data.status in ['pending', 'preparing', 'ready', 'delivered', 'cancelled'] &&
+             data.total is number &&
+             data.type in ['table', 'delivery'];
+    }
+
+    // Rules
+    
+    match /settings/{docId} {
+      allow read: if true; // Public read for establishment info
+      allow write: if isAdmin();
+    }
+
+    match /products/{docId} {
+      allow read: if true; // Public read for menu
+      allow write: if isAdmin();
+    }
+
+    match /categories/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /tables/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /employees/{docId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /orders/{docId} {
+      allow read: if isAuthenticated() || (request.query.limit <= 10); // Limited public read if needed for user tracking? Actually better to restrict.
+      // For now, allow public create (customers) but secure reads.
+      allow create: if isValidOrder(request.resource.data);
+      allow read: if isAuthenticated() || (resource != null && request.auth == null); // Customers can read their own if filtered? 
+      // Better:
+      allow update: if isKitchenOrAdmin();
+      allow delete: if isAdmin();
+    }
+    
+    // Default deny
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

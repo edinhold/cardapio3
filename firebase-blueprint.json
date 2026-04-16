@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "Setting": {
+      "title": "Setting",
+      "description": "Configurações gerais do estabelecimento",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome do estabelecimento" },
+        "logoUrl": { "type": "string", "description": "URL da logo" },
+        "whatsapp": { "type": "string", "description": "Número de WhatsApp para notificações" },
+        "deliveryEnabled": { "type": "boolean", "description": "Se o delivery está ativo" },
+        "deliveryFee": { "type": "number", "description": "Taxa de entrega" }
+      },
+      "required": ["name", "whatsapp"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Produtos do cardápio",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome do produto" },
+        "description": { "type": "string", "description": "Descrição do produto" },
+        "price": { "type": "number", "description": "Preço" },
+        "categoryId": { "type": "string", "description": "ID da categoria" },
+        "imageUrl": { "type": "string", "description": "URL da imagem" },
+        "available": { "type": "boolean", "description": "Disponibilidade" }
+      },
+      "required": ["name", "price", "categoryId"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Categorias de produtos",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome da categoria" },
+        "order": { "type": "number", "description": "Ordem de exibição" }
+      },
+      "required": ["name"]
+    },
+    "Table": {
+      "title": "Table",
+      "description": "Mesas do estabelecimento",
+      "type": "object",
+      "properties": {
+        "number": { "type": "string", "description": "Número da mesa" },
+        "status": { "type": "string", "enum": ["free", "occupied", "reserved"] }
+      },
+      "required": ["number"]
+    },
+    "Employee": {
+      "title": "Employee",
+      "description": "Funcionários e suas funções",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nome do funcionário" },
+        "role": { "type": "string", "description": "Função (admin, waiter, kitchen)" },
+        "email": { "type": "string", "description": "E-mail de acesso" }
+      },
+      "required": ["name", "role"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Pedidos realizados",
+      "type": "object",
+      "properties": {
+        "items": { "type": "array", "description": "Itens do pedido" },
+        "type": { "type": "string", "enum": ["table", "delivery"] },
+        "tableId": { "type": "string", "description": "ID da mesa (se mesa)" },
+        "customerName": { "type": "string", "description": "Nome do cliente" },
+        "customerPhone": { "type": "string", "description": "Telefone do cliente" },
+        "address": { "type": "string", "description": "Endereço (se delivery)" },
+        "status": { "type": "string", "enum": ["pending", "preparing", "ready", "delivered", "cancelled"] },
+        "total": { "type": "number", "description": "Total do pedido" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["items", "status", "total", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/settings/{id}": { "schema": "Setting", "description": "Configurações" },
+    "/products/{id}": { "schema": "Product", "description": "Produtos" },
+    "/categories/{id}": { "schema": "Category", "description": "Categorias" },
+    "/tables/{id}": { "schema": "Table", "description": "Mesas" },
+    "/employees/{id}": { "schema": "Employee", "description": "Funcionários" },
+    "/orders/{id}": { "schema": "Order", "description": "Pedidos" }
+  }
+}

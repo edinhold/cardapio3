@@ -1,0 +1,6 @@
+{
+  "name": "MenuFlow - Cardápio Digital & Gestão",
+  "description": "Sistema completo de cardápio digital com painel administrativo, gestão de pedidos em tempo real, controle de funcionários e integração com WhatsApp.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
