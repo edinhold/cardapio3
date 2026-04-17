@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Product, Order, Settings, Table } from "../services/dataService";
-import { Plus, Minus, ShoppingCart, X, Smartphone, User, Phone, MapPin, Send, CheckCircle2 } from "lucide-react";
+import { Plus, Minus, ShoppingCart, X, Smartphone, User, Phone, MapPin, Send, CheckCircle2, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useParams, useSearchParams } from "react-router-dom";
+import { db } from "../firebase";
+import { collection, addDoc, serverTimestamp, query, where, orderBy, onSnapshot } from "firebase/firestore";
 
 interface CustomerMenuProps {
   settings: Settings;
@@ -29,12 +31,54 @@ export default function CustomerMenu({ settings, products, onCreateOrder, tableN
   const [showCart, setShowCart] = useState(false);
   const [selectedTable, setSelectedTable] = useState<string | undefined>(tableNumber);
 
+  // Chat State
+  const [showChat, setShowChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [newChatMessage, setNewChatMessage] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
   // Skip registration for Admin POS
   useEffect(() => {
     if (tables && tables.length > 0) {
       setStage('menu');
     }
   }, [tables]);
+
+  // Sync Chat
+  useEffect(() => {
+    if (!customer.phone || stage === 'registration') return;
+
+    const q = query(
+      collection(db, "chat_messages"),
+      where("customerId", "==", customer.phone),
+      orderBy("timestamp", "asc")
+    );
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setChatMessages(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    });
+
+    return () => unsubscribe();
+  }, [customer.phone, stage]);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [chatMessages]);
+
+  const sendChatMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newChatMessage.trim()) return;
+
+    await addDoc(collection(db, "chat_messages"), {
+      customerId: customer.phone,
+      text: newChatMessage,
+      sender: "customer",
+      timestamp: serverTimestamp()
+    });
+    setNewChatMessage("");
+  };
 
   const categories = Array.from(new Set(products.map(p => p.category)));
 
@@ -391,6 +435,73 @@ export default function CustomerMenu({ settings, products, onCreateOrder, tableN
                 </button>
               </div>
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {/* Floating Chat Button */}
+      {stage !== 'registration' && (
+        <button 
+          onClick={() => setShowChat(true)}
+          className="fixed bottom-6 right-6 w-14 h-14 bg-brand-accent text-brand-bg rounded-full flex items-center justify-center shadow-2xl z-40 hover:scale-110 active:scale-90 transition-all"
+        >
+          <MessageCircle size={24} />
+          {chatMessages.length > 0 && chatMessages[chatMessages.length-1]?.sender === 'admin' && (
+             <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-brand-accent animate-pulse" />
+          )}
+        </button>
+      )}
+
+      {/* Chat Modal */}
+      <AnimatePresence>
+        {showChat && (
+          <motion.div 
+            initial={{ opacity: 0, y: 100 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 100 }}
+            className="fixed bottom-24 right-6 w-80 h-[450px] bg-brand-bg border border-brand-border rounded-3xl shadow-2xl z-50 flex flex-col overflow-hidden"
+          >
+            <div className="p-4 bg-brand-card border-b border-brand-border flex justify-between items-center">
+               <div className="flex items-center gap-2">
+                 <div className="w-8 h-8 bg-brand-accent rounded-lg flex items-center justify-center font-bold text-brand-bg text-xs">A</div>
+                 <p className="text-xs font-bold uppercase tracking-widest">Suporte Online</p>
+               </div>
+               <button onClick={() => setShowChat(false)} className="p-1.5 hover:bg-white/5 rounded-full">
+                 <X size={16} />
+               </button>
+            </div>
+            
+            <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatMessages.map((m, i) => (
+                <div key={i} className={`flex ${m.sender === 'customer' ? 'justify-end' : 'justify-start'}`}>
+                  <div className={`max-w-[85%] p-3 rounded-2xl text-[11px] font-medium ${
+                    m.sender === 'customer' 
+                      ? 'bg-brand-accent text-brand-bg rounded-tr-none' 
+                      : 'bg-brand-card border border-brand-border text-white rounded-tl-none'
+                  }`}>
+                    {m.text}
+                  </div>
+                </div>
+              ))}
+              {chatMessages.length === 0 && (
+                 <div className="text-center py-20 text-[10px] text-brand-dim italic">Diga olá para o suporte!</div>
+              )}
+            </div>
+
+            <form onSubmit={sendChatMessage} className="p-4 bg-brand-card border-t border-brand-border flex gap-2">
+              <input 
+                type="text" 
+                value={newChatMessage}
+                onChange={e => setNewChatMessage(e.target.value)}
+                placeholder="Fale conosco..."
+                className="flex-1 bg-brand-bg border border-brand-border rounded-xl px-3 py-2 text-[11px] outline-none focus:border-brand-accent transition-all"
+              />
+              <button 
+                type="submit"
+                className="bg-brand-accent text-brand-bg p-2 rounded-xl"
+              >
+                <Send size={16} />
+              </button>
+            </form>
           </motion.div>
         )}
       </AnimatePresence>

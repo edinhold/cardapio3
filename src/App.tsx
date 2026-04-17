@@ -15,10 +15,12 @@ import ProductsPage from "./pages/admin/Products";
 import TablesPage from "./pages/admin/Tables";
 import EmployeesPage from "./pages/admin/Employees";
 import SettingsPage from "./pages/admin/Settings";
+import ReportsPage from "./pages/admin/Reports";
+import CustomersPage from "./pages/admin/Customers";
 import { 
   ShieldCheck, UtensilsCrossed, ChefHat, Bell, LogOut, 
   LayoutDashboard, Package, Smartphone, Users, Settings as SettingsIcon,
-  Store
+  Store, TrendingUp, MessageSquare
 } from "lucide-react";
 
 export default function App() {
@@ -77,6 +79,12 @@ export default function App() {
           <Route index element={<AdminDashboard settings={settings} products={products} orders={orders} tables={tables} employees={employees} />} />
           <Route path="produtos" element={<ProductsPage />} />
           <Route path="mesas" element={<TablesPage />} />
+          <Route path="clientes" element={
+            <div className="h-full overflow-hidden flex flex-col">
+              <CustomersPage orders={orders} />
+            </div>
+          } />
+          <Route path="relatorios" element={<ReportsPage orders={orders} />} />
           <Route path="equipe" element={<EmployeesPage />} />
           <Route path="config" element={<SettingsPage />} />
           <Route path="cozinha" element={
@@ -120,6 +128,8 @@ function AdminLayout({ settings, user }: any) {
     { name: "Dashboard", path: "/admin", icon: LayoutDashboard },
     { name: "Venda Balcão", path: "/admin/balcao", icon: Store },
     { name: "Cozinha", path: "/admin/cozinha", icon: ChefHat },
+    { name: "Relatórios", path: "/admin/relatorios", icon: TrendingUp },
+    { name: "Clientes", path: "/admin/clientes", icon: MessageSquare },
     { name: "Produtos", path: "/admin/produtos", icon: Package },
     { name: "Mesas", path: "/admin/mesas", icon: Smartphone },
     { name: "Equipe", path: "/admin/equipe", icon: Users },
