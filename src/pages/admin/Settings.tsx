@@ -15,7 +15,9 @@ export default function Settings() {
     deliveryActive: false,
     deliveryFee: 10,
     deliveryRadius: 5,
-    brandColor: '#10b981'
+    brandColor: '#10b981',
+    textColor: '#F9FAFB',
+    textDimColor: '#9CA3AF'
   });
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,6 +136,36 @@ export default function Settings() {
                 <div>
                   <p className="text-xs font-bold text-white uppercase">{settings.brandColor}</p>
                   <p className="text-[10px] text-brand-dim">Esta cor será usada em botões e destaques.</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-brand-dim uppercase tracking-wider mb-2 block">Cor das Letras (Principal)</label>
+              <div className="flex items-center gap-4 bg-brand-bg/50 border border-brand-border rounded-2xl p-4">
+                <input
+                  type="color"
+                  className="w-12 h-12 bg-transparent border-0 rounded-lg cursor-pointer"
+                  value={settings.textColor}
+                  onChange={(e) => setSettings({ ...settings, textColor: e.target.value })}
+                />
+                <div>
+                  <p className="text-xs font-bold text-white uppercase">{settings.textColor}</p>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-black text-brand-dim uppercase tracking-wider mb-2 block">Cor das Letras (Secundária)</label>
+              <div className="flex items-center gap-4 bg-brand-bg/50 border border-brand-border rounded-2xl p-4">
+                <input
+                  type="color"
+                  className="w-12 h-12 bg-transparent border-0 rounded-lg cursor-pointer"
+                  value={settings.textDimColor}
+                  onChange={(e) => setSettings({ ...settings, textDimColor: e.target.value })}
+                />
+                <div>
+                  <p className="text-xs font-bold text-white uppercase">{settings.textDimColor}</p>
                 </div>
               </div>
             </div>

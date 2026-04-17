@@ -9,6 +9,8 @@ export interface Settings {
   deliveryFee: number;
   deliveryRadius: number;
   brandColor?: string;
+  textColor?: string;
+  textDimColor?: string;
 }
 
 export interface Product {

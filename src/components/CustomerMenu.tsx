@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Product, Order, Settings, Table } from "../services/dataService";
 import { Plus, Minus, ShoppingCart, X, Smartphone, User, Phone, MapPin, Send, CheckCircle2, MessageCircle } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";

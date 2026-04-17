@@ -31,7 +31,10 @@ export default function App() {
     whatsappNumber: "551199999999",
     deliveryActive: true,
     deliveryFee: 10.0,
-    deliveryRadius: 5
+    deliveryRadius: 5,
+    brandColor: "#10b981",
+    textColor: "#F9FAFB",
+    textDimColor: "#9CA3AF"
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -142,6 +145,8 @@ function AdminLayout({ settings, user }: any) {
       <style>{`
         :root {
           ${settings.brandColor ? `--color-brand-accent: ${settings.brandColor};` : ''}
+          ${settings.textColor ? `--color-brand-text: ${settings.textColor};` : ''}
+          ${settings.textDimColor ? `--color-brand-dim: ${settings.textDimColor};` : ''}
         }
       `}</style>
       
