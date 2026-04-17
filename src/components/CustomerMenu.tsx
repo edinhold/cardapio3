@@ -1,18 +1,40 @@
-import { useState } from "react";
-import { Product, Order, Settings } from "../services/dataService";
-import { Plus, Minus, ShoppingCart, X } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Product, Order, Settings, Table } from "../services/dataService";
+import { Plus, Minus, ShoppingCart, X, Smartphone, User, Phone, MapPin, Send, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { useParams, useSearchParams } from "react-router-dom";
 
 interface CustomerMenuProps {
   settings: Settings;
   products: Product[];
   onCreateOrder: (order: any) => void;
   tableNumber?: string;
+  tables?: Table[]; // Optional list to select from in POS mode
 }
 
-export default function CustomerMenu({ settings, products, onCreateOrder, tableNumber }: CustomerMenuProps) {
+type MenuStage = 'registration' | 'menu' | 'confirmed';
+
+export default function CustomerMenu({ settings, products, onCreateOrder, tableNumber: propTableNumber, tables }: CustomerMenuProps) {
+  const { id: paramTableNumber } = useParams();
+  const [searchParams] = useSearchParams();
+  const queryTableNumber = searchParams.get('table');
+  
+  const tableNumber = propTableNumber || paramTableNumber || queryTableNumber || undefined;
+  
+  const [stage, setStage] = useState<MenuStage>('registration');
+  const [customer, setCustomer] = useState({ name: '', phone: '', address: '' });
+  const [lastOrderId, setLastOrderId] = useState<string | null>(null);
+
   const [cart, setCart] = useState<{product: Product, quantity: number}[]>([]);
   const [showCart, setShowCart] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<string | undefined>(tableNumber);
+
+  // Skip registration for Admin POS
+  useEffect(() => {
+    if (tables && tables.length > 0) {
+      setStage('menu');
+    }
+  }, [tables]);
 
   const categories = Array.from(new Set(products.map(p => p.category)));
 
@@ -45,30 +67,210 @@ export default function CustomerMenu({ settings, products, onCreateOrder, tableN
   const total = cart.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
 
   const handleFinishOrder = () => {
+    const finalTable = selectedTable || tableNumber;
+    
     onCreateOrder({
-      customerName: "Cliente " + (tableNumber ? `Mesa ${tableNumber}` : "Delivery"),
-      type: tableNumber ? 'table' : 'delivery',
-      tableId: tableNumber,
+      customerName: customer.name || "Cliente " + (finalTable ? `Mesa ${finalTable}` : "Balcão"),
+      customerPhone: customer.phone,
+      customerAddress: customer.address,
+      type: finalTable ? 'table' : 'delivery',
+      tableId: finalTable,
       items: cart.map(item => ({
         productId: item.product.id,
         name: item.product.name,
         quantity: item.quantity,
         price: item.product.price
       })),
-      total: total + (tableNumber ? 0 : settings.deliveryFee),
+      total: total + (finalTable ? 0 : settings.deliveryFee),
       status: 'pending'
     });
-    setCart([]);
+
+    setLastOrderId(Math.random().toString(36).substr(2, 6).toUpperCase());
+    setStage('confirmed');
     setShowCart(false);
   };
+
+  const handleSendWhatsApp = () => {
+    if (!settings.whatsappNumber) return;
+    
+    const itemsList = cart.map(i => `${i.quantity}x ${i.product.name}`).join('\n');
+    const finalTable = selectedTable || tableNumber;
+    const text = `*NOVO PEDIDO: ${settings.name}*\n\n` +
+      `*Cliente:* ${customer.name}\n` +
+      `*Fone:* ${customer.phone}\n` +
+      (finalTable ? `*Mesa:* ${finalTable}\n` : `*Endereço:* ${customer.address}\n`) +
+      `\n*Itens:*\n${itemsList}\n\n` +
+      `*Total: R$ ${(total + (!finalTable ? settings.deliveryFee : 0)).toFixed(2)}*`;
+
+    const url = `https://wa.me/${settings.whatsappNumber}?text=${encodeURIComponent(text)}`;
+    window.open(url, '_blank');
+  };
+
+  if (stage === 'registration' && !tables) {
+    return (
+      <div className="min-h-screen bg-brand-bg text-brand-text flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="w-full max-w-sm card-gradient p-8 rounded-[2.5rem] border border-brand-border space-y-8 shadow-2xl"
+        >
+          <div className="text-center space-y-2">
+            <div className="w-16 h-16 bg-brand-accent/10 text-brand-accent rounded-full flex items-center justify-center mx-auto mb-4">
+              <User size={32} />
+            </div>
+            <h2 className="text-xl font-black uppercase tracking-widest">Identifique-se</h2>
+            <p className="text-[10px] text-brand-dim font-bold uppercase tracking-widest">Para uma melhor experiência no {settings.name}</p>
+          </div>
+
+          <form onSubmit={(e) => { e.preventDefault(); setStage('menu'); }} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-brand-dim uppercase tracking-wider ml-2">Nome Completo</label>
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-dim" size={16} />
+                <input 
+                  type="text" required
+                  className="w-full bg-brand-bg/50 border border-brand-border rounded-2xl pl-12 pr-4 py-4 text-sm outline-none focus:border-brand-accent transition-all font-bold"
+                  value={customer.name}
+                  onChange={e => setCustomer({...customer, name: e.target.value})}
+                  placeholder="Seu nome"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-brand-dim uppercase tracking-wider ml-2">WhatsApp</label>
+              <div className="relative">
+                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-dim" size={16} />
+                <input 
+                  type="tel" required
+                  className="w-full bg-brand-bg/50 border border-brand-border rounded-2xl pl-12 pr-4 py-4 text-sm outline-none focus:border-brand-accent transition-all font-bold"
+                  value={customer.phone}
+                  onChange={e => setCustomer({...customer, phone: e.target.value})}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+            </div>
+
+            {!tableNumber && (
+              <div className="space-y-2 text-brand-text">
+                <label className="text-[10px] font-black text-brand-dim uppercase tracking-wider ml-2">Endereço de Entrega</label>
+                <div className="relative">
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-brand-dim" size={16} />
+                  <input 
+                    type="text" required
+                    className="w-full bg-brand-bg/50 border border-brand-border rounded-2xl pl-12 pr-4 py-4 text-sm outline-none focus:border-brand-accent transition-all font-bold"
+                    value={customer.address}
+                    onChange={e => setCustomer({...customer, address: e.target.value})}
+                    placeholder="Rua, Número, Bairro"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button 
+              type="submit"
+              disabled={!customer.name || !customer.phone || (!tableNumber && !customer.address)}
+              className="w-full bg-brand-accent text-brand-bg py-5 rounded-2xl font-black uppercase tracking-[0.2em] shadow-lg shadow-brand-accent/20 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 mt-4"
+            >
+              Acessar Cardápio
+            </button>
+          </form>
+        </motion.div>
+      </div>
+    );
+  }
+
+  if (stage === 'confirmed') {
+    return (
+      <div className="min-h-screen bg-brand-bg text-brand-text flex items-center justify-center p-6">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-sm text-center space-y-8"
+        >
+          <div className="w-24 h-24 bg-brand-accent/20 text-brand-accent rounded-full flex items-center justify-center mx-auto animate-bounce">
+            <CheckCircle2 size={48} />
+          </div>
+          
+          <div className="space-y-2">
+            <h2 className="text-3xl font-black tracking-tighter uppercase">Pedido Enviado!</h2>
+            <p className="text-brand-dim text-sm font-medium">Sua solicitação já está na nossa cozinha.</p>
+          </div>
+
+          <div className="card-gradient rounded-3xl p-6 border border-brand-border space-y-4">
+             <div className="flex justify-between items-center text-xs text-brand-dim uppercase tracking-widest font-black">
+                <span>Status</span>
+                <span className="text-brand-accent">Produção</span>
+             </div>
+             <div className="h-2 bg-brand-bg rounded-full overflow-hidden">
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: "30%" }}
+                  className="h-full bg-brand-accent shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                />
+             </div>
+             <p className="text-[10px] text-brand-dim italic">Estimativa: 20-30 min</p>
+          </div>
+
+          <div className="space-y-4">
+            {settings.whatsappNumber && (
+              <button 
+                onClick={handleSendWhatsApp}
+                className="w-full bg-emerald-500 text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] flex items-center justify-center gap-3 shadow-lg shadow-emerald-500/20 hover:scale-[1.02] transition-all"
+              >
+                <Send size={20} />
+                Enviar pelo WhatsApp
+              </button>
+            )}
+            <button 
+              onClick={() => {
+                setStage('menu');
+                setCart([]);
+              }}
+              className="w-full bg-brand-border text-white py-5 rounded-2xl font-black uppercase tracking-[0.2em] hover:bg-white/10 transition-all font-bold"
+            >
+              Novo Pedido / Voltar
+            </button>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-brand-bg text-brand-text">
       {/* Header */}
       <header className="p-6 flex justify-between items-center border-b border-brand-border sticky top-0 bg-brand-bg/80 backdrop-blur-md z-30">
-        <div>
-          <h1 className="text-xl font-bold">{settings.name}</h1>
-          <p className="text-xs text-brand-dim">{tableNumber ? `Mesa ${tableNumber}` : "Delivery Disponível"}</p>
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-brand-accent rounded-xl flex items-center justify-center font-bold text-brand-bg shadow-lg overflow-hidden shrink-0">
+             {settings.logoUrl ? (
+               <img src={settings.logoUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+             ) : (
+               settings?.name?.[0] || 'M'
+             )}
+          </div>
+          <div>
+            <h1 className="text-xl font-bold">{settings.name}</h1>
+            <div className="flex items-center gap-2">
+              {tables && tables.length > 0 ? (
+                <div className="flex items-center gap-2">
+                  <Smartphone size={12} className="text-brand-accent" />
+                  <select 
+                    value={selectedTable || ""}
+                    onChange={(e) => setSelectedTable(e.target.value || undefined)}
+                    className="bg-transparent text-xs text-brand-dim outline-none border-none font-bold"
+                  >
+                    <option value="" className="bg-brand-card">Balcão / Delivery</option>
+                    {tables.map(t => (
+                      <option key={t.id} value={t.number} className="bg-brand-card text-brand-text">Mesa {t.number}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <p className="text-xs text-brand-dim">{tableNumber ? `Mesa ${tableNumber}` : "Delivery Disponível"}</p>
+              )}
+            </div>
+          </div>
         </div>
         <button 
           onClick={() => setShowCart(true)}
@@ -170,7 +372,7 @@ export default function CustomerMenu({ settings, products, onCreateOrder, tableN
                   <span>Subtotal</span>
                   <span>R$ {total.toFixed(2)}</span>
                 </div>
-                {!tableNumber && (
+                {!(selectedTable || tableNumber) && (
                    <div className="flex justify-between text-brand-dim text-sm">
                      <span>Taxa de Entrega</span>
                      <span>R$ {settings.deliveryFee.toFixed(2)}</span>
@@ -178,12 +380,12 @@ export default function CustomerMenu({ settings, products, onCreateOrder, tableN
                 )}
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>R$ {(total + (!tableNumber ? settings.deliveryFee : 0)).toFixed(2)}</span>
+                  <span>R$ {(total + (!(selectedTable || tableNumber) ? settings.deliveryFee : 0)).toFixed(2)}</span>
                 </div>
                 <button 
                   disabled={cart.length === 0}
                   onClick={handleFinishOrder}
-                  className="w-full bg-brand-accent text-brand-bg py-4 rounded-2xl font-bold uppercase tracking-widest disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
+                  className="w-full bg-brand-accent text-brand-bg py-4 rounded-2xl font-black uppercase tracking-widest disabled:opacity-50 transition-all hover:scale-[1.02] active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)]"
                 >
                   Confirmar Pedido
                 </button>

@@ -8,6 +8,7 @@ export interface Settings {
   deliveryActive: boolean;
   deliveryFee: number;
   deliveryRadius: number;
+  brandColor?: string;
 }
 
 export interface Product {
@@ -44,6 +45,8 @@ export interface OrderItem {
 export interface Order {
   id?: string;
   customerName: string;
+  customerPhone?: string;
+  customerAddress?: string;
   type: 'table' | 'delivery';
   tableId?: string;
   items: OrderItem[];
@@ -53,7 +56,46 @@ export interface Order {
   whatsappSent: boolean;
 }
 
+// Utility to compress/resize images for Base64 storage in Firestore (limits 1MB)
+export const compressImage = (file: File, maxWidth = 400): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = (maxWidth / width) * height;
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Use high compression to stay under Firestore limits
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
+};
+
 // Service Functions
+export const syncCategories = (callback: (categories: any[]) => void) => {
+  const q = query(collection(db, "categories"), orderBy("name"));
+  return onSnapshot(q, (snapshot) => {
+    const categories = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    callback(categories);
+  }, (err) => handleFirestoreError(err, OperationType.LIST, "categories"));
+};
+
 export const syncSettings = (callback: (settings: Settings) => void) => {
   return onSnapshot(doc(db, "settings", "config"), (doc) => {
     if (doc.exists()) {

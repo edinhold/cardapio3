@@ -10,7 +10,8 @@ import {
   query, 
   orderBy 
 } from 'firebase/firestore';
-import { Plus, Pencil, Trash2, X, Image as ImageIcon } from 'lucide-react';
+import { Plus, Pencil, Trash2, X, Image as ImageIcon, Upload } from 'lucide-react';
+import { compressImage } from '../../services/dataService';
 
 interface Category {
   id: string;
@@ -249,13 +250,32 @@ export default function Products() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-1">URL da Imagem</label>
-                <input 
-                  type="url"
-                  className="w-full px-4 py-2 border border-zinc-200 rounded-lg outline-none focus:ring-2 focus:ring-orange-500"
-                  value={formData.imageUrl}
-                  onChange={(e) => setFormData({...formData, imageUrl: e.target.value})}
-                />
+                <label className="block text-sm font-medium text-zinc-700 mb-1">Foto do Produto (PNG/JPG)</label>
+                <div className="flex gap-4">
+                  <label className="flex-1 flex flex-col items-center justify-center border-2 border-dashed border-zinc-200 rounded-xl p-4 hover:border-orange-500 cursor-pointer transition-all bg-zinc-50">
+                    <Upload size={20} className="text-zinc-400 mb-1" />
+                    <span className="text-[10px] font-bold text-zinc-400 uppercase">Escolher Foto</span>
+                    <input 
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const base64 = await compressImage(file, 400);
+                          setFormData({...formData, imageUrl: base64});
+                        }
+                      }}
+                    />
+                  </label>
+                  <div className="w-20 h-20 bg-zinc-100 border border-zinc-200 rounded-xl flex items-center justify-center overflow-hidden">
+                    {formData.imageUrl ? (
+                      <img src={formData.imageUrl} className="w-full h-full object-cover" />
+                    ) : (
+                      <ImageIcon size={24} className="text-zinc-300" />
+                    )}
+                  </div>
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 <input 
