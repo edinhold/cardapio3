@@ -1,5 +1,5 @@
 import { Order, Product, Settings, Table } from "../services/dataService";
-import { Smartphone, Package, Users, Settings as SettingsIcon, Plus, QrCode, TrendingUp, Clock, AlertCircle, Store } from "lucide-react";
+import { Smartphone, Package, Users, Settings as SettingsIcon, Plus, QrCode, TrendingUp, Clock, AlertCircle, Store, ChefHat } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface AdminDashboardProps {
@@ -111,6 +111,13 @@ export default function AdminDashboard({ settings, products, orders, tables, emp
             >
               <Users size={24} className="mb-3 group-hover:scale-110 transition-transform" />
               <span className="text-[10px] uppercase tracking-widest font-black">Equipe</span>
+            </Link>
+            <Link 
+              to="/cozinha" 
+              className="flex flex-col items-center justify-center bg-brand-bg border border-brand-border p-6 rounded-2xl hover:bg-brand-accent hover:text-brand-bg hover:border-brand-accent transition-all group"
+            >
+              <ChefHat size={24} className="mb-3 group-hover:scale-110 transition-transform" />
+              <span className="text-[10px] uppercase tracking-widest font-black text-center leading-tight">Painel Cozinha Ext.</span>
             </Link>
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   updateOrderStatus, createOrder 
 } from "./services/dataService";
 import KitchenPanel from "./components/KitchenPanel";
+import KitchenOffline from "./pages/KitchenOffline";
 import AdminDashboard from "./components/AdminDashboard";
 import CustomerMenu from "./components/CustomerMenu";
 import LoginPage from "./pages/LoginPage";
@@ -91,7 +92,13 @@ export default function App() {
           <Route path="equipe" element={<EmployeesPage />} />
           <Route path="config" element={<SettingsPage />} />
           <Route path="cozinha" element={
-            <div className="card-gradient h-full rounded-2xl border border-brand-border p-5 flex flex-col overflow-hidden">
+            <div className="card-gradient h-full rounded-2xl border border-brand-border p-5 flex flex-col overflow-hidden relative">
+              <Link 
+                to="/cozinha" 
+                className="absolute top-4 right-4 z-10 flex items-center gap-2 px-3 py-1.5 bg-brand-accent text-brand-bg rounded-lg text-[10px] font-black uppercase tracking-widest shadow-lg hover:scale-105 transition-all"
+              >
+                <ChefHat size={12} /> Abrir Modo Focado
+              </Link>
               <KitchenPanel 
                 orders={orders} 
                 onUpdateStatus={(id, status, phone) => updateOrderStatus(id, status, phone, settings)} 
@@ -106,6 +113,7 @@ export default function App() {
         </Route>
         
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/cozinha" element={user ? <KitchenOffline orders={orders} settings={settings} /> : <Navigate to="/login" replace />} />
         
         {/* Customer View */}
         <Route path="/" element={<CustomerMenu settings={settings} products={products} onCreateOrder={createOrder} />} />
