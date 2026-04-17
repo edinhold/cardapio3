@@ -1,7 +1,7 @@
 import { Order } from "../services/dataService";
-import { Loader2, CheckCircle, Clock, Play, Printer, XCircle } from "lucide-react";
+import { Loader2, CheckCircle, Clock, Play, Printer, XCircle, Bell } from "lucide-react";
 import { motion } from "motion/react";
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { useReactToPrint } from "react-to-print";
 
 interface KitchenPanelProps {
@@ -12,9 +12,20 @@ interface KitchenPanelProps {
 export default function KitchenPanel({ orders, onUpdateStatus }: KitchenPanelProps) {
   const [view, setView] = useState<'production' | 'history'>('production');
   const [historyFilter, setHistoryFilter] = useState<'today' | 'weekly'>('today');
+  const prevOrdersCount = useRef(0);
 
   const activeOrders = orders.filter(o => o.status !== 'delivered' && o.status !== 'cancelled');
   
+  // Alert sound logic
+  useEffect(() => {
+    if (activeOrders.length > prevOrdersCount.current) {
+      const audio = new Audio('https://cdn.pixabay.com/download/audio/2021/08/04/audio_062564ae80.mp3?filename=notification-1-817.mp3');
+      audio.volume = 1.0;
+      audio.play().catch(e => console.log('Interação do usuário necessária para áudio:', e));
+    }
+    prevOrdersCount.current = activeOrders.length;
+  }, [activeOrders.length]);
+
   const historyOrders = orders.filter(o => {
     if (o.status !== 'delivered' && o.status !== 'cancelled') return false;
     
@@ -66,9 +77,14 @@ export default function KitchenPanel({ orders, onUpdateStatus }: KitchenPanelPro
         )}
 
         {view === 'production' && (
-          <span className="bg-brand-accent text-brand-bg px-2 py-0.5 rounded text-[11px] font-bold">
-            {activeOrders.length} ATIVOS
-          </span>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-[10px] text-brand-dim font-bold animate-pulse">
+              <Bell size={10} /> ALERTAS SONOROS ATIVOS
+            </span>
+            <span className="bg-brand-accent text-brand-bg px-2 py-0.5 rounded text-[11px] font-bold">
+              {activeOrders.length} ATIVOS
+            </span>
+          </div>
         )}
       </div>
 
